@@ -1,0 +1,119 @@
+---
+title: "Solving a Riddle with a Simulation"
+author: "Nadav 'The Riddler' Rindler"
+date: "2017-03-26T00:00:00-05:00"
+categories: ["R"]
+tags: ["R", "riddle", "simulation","The Riddler"]
+showonlyimage: true
+draft: false
+image: "/img/Babys_day_out_poster.jpg"
+weight: 2
+---
+
+
+
+<div id="will-the-baby-walk-away" class="section level1">
+<h1>Will the baby walk away?</h1>
+<p>Nate Silver’s famous FiveThirtyEight blog posts a weekly riddle challenge. This week’s riddle is about <a href="https://fivethirtyeight.com/features/will-the-baby-walk-away-will-the-troll-kill-the-dwarves/">a baby learning to walk</a>.</p>
+<div class="figure">
+<img src="/img/Babys_day_out_poster.jpg" alt="Classic" />
+<p class="caption">Classic</p>
+</div>
+<div id="riddle-express" class="section level3">
+<h3>Riddle Express:</h3>
+<blockquote>
+<p>Your baby is learning to walk. The baby begins by holding onto a couch. Whenever she is next to the couch, there is a 25 percent chance that she will take a step forward and a 75 percent chance that she will stay clutching the couch. If the baby is one or more steps away from the couch, there’s a 25 percent chance that she will take a step forward, a 25 percent chance she’ll stay in place and a 50 percent chance she’ll take one step back toward the couch.</p>
+</blockquote>
+<blockquote>
+<p>In the long run, what percent of the time does the baby choose to clutch the couch?</p>
+</blockquote>
+<hr />
+<p>That’s a head scratcher! I am not sure how to calculate this. Luckily, I don’t have to.</p>
+<p>Instead, let’s <em>simulate</em> what happens with a virtual baby, “Cassidy” and virtual couch using R. We can run through the same simulation many times, varying the number of steps the baby takes, in order to see what happens in the long term.</p>
+</div>
+<div id="generate-random-number" class="section level3">
+<h3>Generate Random Number</h3>
+<p>First, I can have R randomly choose whether Baby Cassidy stays still, steps forward, or steps backwards by randomly sampling one number from a set of numbers that replicate the probabilities listed in the riddle.</p>
+<p>Here, I’m simulating lil’ Cass at the couch - randomly generating a number that is either a 0 (baby stays at couch) or a 1 (baby steps forward). As specified in the riddle, there is a 75% chance of staying at the couch (0) and 25% chance of stepping forward (1):</p>
+<pre class="r"><code>sample(c(0,0,0,1),1)</code></pre>
+<p>The probabilities change when the little tyke is no longer at the couch. Now we’re told that there is a 25% chance of stepping forward (+1), a 25% chance of standing still (0), and a 50% chance of stepping backwards:</p>
+<pre class="r"><code>sample(c(1,0,-1,-1),1)</code></pre>
+</div>
+<div id="if-else" class="section level3">
+<h3>If Else</h3>
+<p>Baby Cassidy is more adventurous when she’s not clinging to the couch. If at the couch, do X. If away from the couch, do Y. This sounds like an if-else statement.</p>
+<p>In order to know which probabilities to apply, we have to know where Cass is. That’s stored in the variable “c”, which is updated after every step. If c equals 0, we know the tot is at the couch, and c&gt;0 denotes the number of steps away from the couch.</p>
+<p>You can also see the random number generator (“r”) at work - that’s how we’re “simulating” what she will do next.</p>
+<p>Finally, the variable “y” is a list that records which action Cass takes at each step.</p>
+<p>We loop over the if-else statements “x” number of times times – if x equals 100, that means we get to observe Cass’ steps 100 times in our simulation.</p>
+<pre class="r"><code>  c &lt;-  0 #location - 0 = at couch, &gt;0 = number of steps away from the couch
+  y &lt;- list() #empty list to record location at each iteration
+  r &lt;- 0 # 0 = stay still, 1 = step forward, -1 = step back
+  for(i in 1:x){
+    if(c==0){
+      r &lt;- sample(c(0,0,0,1),1)
+      c = c+r
+      y &lt;- c(y,c)
+    }
+    else if(c&gt;0){
+      r &lt;- sample(c(1,0,-1,-1),1)
+      c = c+r
+      y &lt;- c(y,c)
+    }</code></pre>
+</div>
+<div id="putting-it-all-together" class="section level3">
+<h3>Putting it all together</h3>
+<p>So what’s the answer to the riddle?</p>
+<p>I ran the simulation 100 times, varying the number of steps that we get to observe Baby Cassidy, from 10 steps to 1,000 steps. That allows us to see what she does in the “long term”.</p>
+<p>The code below takes our if-else statements, loops over them 10 to 1000 times depending on the simulation. It stores each simulation’s results in a list (“l”), converts that list to a dataframe (“m”), and outputs the “percentage of time the baby is at the couch.” Lastly, I chart the data to see how the simulation behaves as we increase the number of steps.</p>
+<pre class="r"><code>library(ggplot2)
+
+v &lt;- seq(10,1000,10) #100 simulations ranging from 10 to 1000 steps per simulation
+l &lt;- list() #empty list to store average location result
+
+for(x in v){ 
+  c &lt;-  0 #location - 0 = at couch, &gt;0 = number of steps away from the couch
+  y &lt;- list() #empty list to record location at each iteration
+  r &lt;- 0 # 0 = stay still, 1 = step forward, -1 = step back
+  for(i in 1:x){
+    if(c==0){
+      r &lt;- sample(c(0,0,0,1),1)
+      c = c+r
+      y &lt;- c(y,c)
+    }
+    else if(c&gt;0){
+      r &lt;- sample(c(1,0,-1,-1),1)
+      c = c+r
+      y &lt;- c(y,c)
+    }
+  }
+  y &lt;- as.data.frame(t(as.data.frame(y)))
+  y$loc &lt;- ifelse(y$V1==0,1,0) #1 means away from couch, 0 means couch
+  
+  l &lt;- c(l,mean(y$loc)) #mean loc == percent of the time baby is at couch
+}
+
+l &lt;- unlist(l)
+m &lt;- as.data.frame(cbind(v,l))
+colnames(m) &lt;- c(&quot;iterations&quot;,&quot;pct_couch&quot;)
+
+#View data frame with simulation results
+head(m)</code></pre>
+<pre><code>##   iterations pct_couch
+## 1         10 0.7000000
+## 2         20 0.8000000
+## 3         30 0.5666667
+## 4         40 0.3250000
+## 5         50 0.4200000
+## 6         60 0.2666667</code></pre>
+<pre class="r"><code>#generate a chart to visualize the percentage of time at the couch
+ggplot(m,aes(x=iterations, y=pct_couch)) +
+  geom_point() +
+  geom_abline(intercept=weighted.mean(m$pct_couch,m$iterations),slope=0, colour=&quot;red&quot;, size=1) +
+  labs(title=&quot;How often will the baby be at the couch?&quot;) +
+  scale_x_continuous(name=&quot;Iterations&quot;) +
+  scale_y_continuous(name=&quot;Percent of the time at the couch&quot;) </code></pre>
+<p><img src="/portfolio/riddle-simulation_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>It looks like as the number of steps in the simulation increases, Cass tends to spend 50% of the time away from the couch. Cheeky bugger!</p>
+</div>
+</div>
