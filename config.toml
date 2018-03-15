@@ -47,7 +47,7 @@ googleAnalytics = ""
   [params.social]
   #facebook      = "full page or profile url in facebook"
   #googleplus    = "full profile url in googleplus"
-  email         = "nrindler@gmail.com"
+  #email         = "nrindler@gmail.com"
   #twitter       = "full profile url in twitter"
   linkedin      = "https://www.linkedin.com/in/nrindler/"
   #stackoverflow = "full profile url in stackoverflow"
